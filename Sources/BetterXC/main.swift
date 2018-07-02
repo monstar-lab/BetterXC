@@ -22,7 +22,7 @@ func regenerateXcodeProject() throws {
         throw GenerationErrors.regenerationFailed
     }
 
-    print("[1/5] ⚙️ Project regenerated!".green)
+    print("[1/5] ⚙️  Project regenerated!".green)
 }
 
 func locateXcodeProject() throws -> String {
@@ -38,7 +38,7 @@ func locateXcodeProject() throws -> String {
         throw GenerationErrors.couldNotFindProject
     }
 
-    print("[2/5] 🔎 Project found at \(workingPath)/\(guessedProjectFilename).".green)
+    print("[2/5] 🔎  Project found at \(workingPath)/\(guessedProjectFilename).".green)
 
     return guessedProjectFilename
 }
@@ -49,7 +49,7 @@ func openXcodeProject(filename: String) throws -> XcodeProj {
     do {
         let project = try XcodeProj(pathString: filename)
 
-        print("[3/5] 📖 Project opened!".green)
+        print("[3/5] 📖  Project opened!".green)
 
         return project
     } catch {
@@ -76,7 +76,7 @@ func modifyXcodeProject(
             """
         )
 
-        print("[4/5] ✨ Adding Sourcery…")
+        print("[4/5] ✨  Adding Sourcery…".lightBlue)
         try addShellScript(sourceryPhase, label: "Sourcery", to: project, at: 0)
     }
 
@@ -92,11 +92,11 @@ func modifyXcodeProject(
             """
         )
 
-        print("[4/5] 🖊️ Adding SwiftLint…")
+        print("[4/5] 🖊️  Adding SwiftLint…".lightBlue)
         try addShellScript(swiftLintPhase, label: "SwiftLint", to: project)
     }
 
-    print("[4/5] 🔧 Project modified!".green)
+    print("[4/5] 🔧  Project modified!".green)
 }
 
 func addShellScript(
@@ -128,7 +128,7 @@ func saveXcodeProject(_ project: XcodeProj, filename: String) throws {
         throw GenerationErrors.couldNotSave
     }
 
-    print("[5/5] 💾 Project saved!".green)
+    print("[5/5] 💾  Project saved!".green)
 }
 
 // Configure CLI
@@ -147,7 +147,7 @@ do {
     try modifyXcodeProject(project, skipSourcery.value, skipSwiftLint.value)
     try saveXcodeProject(project, filename: projectFilename)
 
-    print("🎉 All done!".green)
+    print("🎉  All done!".green)
     exit(0)
 } catch GenerationErrors.regenerationFailed {
     print("Couldn't regenerate Xcode project. Are you in the project folder?".red)
