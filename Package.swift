@@ -5,6 +5,9 @@ import PackageDescription
 
 let package = Package(
     name: "BetterXC",
+    products: [
+      .executable(name: "xc", targets: ["BetterXC"])
+    ],
     dependencies: [
         .package(url: "https://github.com/xcodeswift/xcproj.git", from: "4.3.0"),
         .package(url: "https://github.com/kareman/SwiftShell.git", from: "4.1.0"),
