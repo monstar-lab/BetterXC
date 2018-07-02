@@ -57,42 +57,67 @@ func openXcodeProject(filename: String) throws -> XcodeProj {
     }
 }
 
-func modifyXcodeProject(_ project: XcodeProj) throws {
+func modifyXcodeProject(
+    _ project: XcodeProj,
+    _ noSourcery: Bool,
+    _ noSwiftLint: Bool
+) throws {
     print("[4/5] Modifying Xcode project…".blue)
 
-    let sourceryPhase = PBXShellScriptBuildPhase(name: "Run Sourcery", shellScript: """
-        if which sourcery >/dev/null; then
-            sourcery
-        else
-            echo "Error: Sourcery not installed, install via `brew install sourcery --HEAD` download from https://github.com/krzysztofzablocki/Sourcery"
-            exit 1
-        fi
-        """
-    )
-    let swiftLintPhase = PBXShellScriptBuildPhase(name: "Run SwiftLint", shellScript:
-        """
-        if which swiftlint >/dev/null; then
-            swiftlint
-        else
-            echo "Error: SwiftLint not installed, install via `brew install swiftlint` or download from https://github.com/realm/SwiftLint"
-            exit 1
-        fi
-        """
-    )
+    if !noSourcery {
+        let sourceryPhase = PBXShellScriptBuildPhase(name: "Run Sourcery", shellScript:
+            """
+            if which sourcery >/dev/null; then
+                sourcery
+            else
+                echo "Error: Sourcery not installed, install via `brew install sourcery --HEAD` download from https://github.com/krzysztofzablocki/Sourcery"
+                exit 1
+            fi
+            """
+        )
 
+        print("[4/5] ✨ Adding Sourcery…")
+        try addShellScript(sourceryPhase, label: "Sourcery", to: project, at: 0)
+    }
+
+    if !noSwiftLint {
+        let swiftLintPhase = PBXShellScriptBuildPhase(name: "Run SwiftLint", shellScript:
+            """
+            if which swiftlint >/dev/null; then
+                swiftlint
+            else
+                echo "Error: SwiftLint not installed, install via `brew install swiftlint` or download from https://github.com/realm/SwiftLint"
+                exit 1
+            fi
+            """
+        )
+
+        print("[4/5] 🖊️ Adding SwiftLint…")
+        try addShellScript(swiftLintPhase, label: "SwiftLint", to: project)
+    }
+
+    print("[4/5] 🔧 Project modified!".green)
+}
+
+func addShellScript(
+    _ phase: PBXShellScriptBuildPhase,
+    label: String,
+    to project: XcodeProj,
+    at position: Int? = nil
+) throws {
     guard let target = project.pbxproj.objects.nativeTargets.values.first(where: { $0.name == "Run" }) else {
         throw GenerationErrors.couldNotFindTarget
     }
 
-    let sourceryReference = project.pbxproj.objects.generateReference(sourceryPhase, "Sourcery")
-    let swiftLintReference = project.pbxproj.objects.generateReference(swiftLintPhase, "SwiftLint")
+    let reference = project.pbxproj.objects.generateReference(phase, label)
 
-    project.pbxproj.objects.shellScriptBuildPhases.append(sourceryPhase, reference: sourceryReference)
-    project.pbxproj.objects.shellScriptBuildPhases.append(swiftLintPhase, reference: swiftLintReference)
-    target.buildPhases.insert(sourceryReference, at: 0)
-    target.buildPhases.append(swiftLintReference)
+    project.pbxproj.objects.shellScriptBuildPhases.append(phase, reference: reference)
 
-    print("[4/5] 🔧 Project modified (Sourcery reference: \(sourceryReference), SwiftLint reference \(swiftLintReference)).".green)
+    if let position = position {
+        target.buildPhases.insert(reference, at: position)
+    } else {
+        target.buildPhases.append(reference)
+    }
 }
 
 func saveXcodeProject(_ project: XcodeProj, filename: String) throws {
@@ -106,13 +131,20 @@ func saveXcodeProject(_ project: XcodeProj, filename: String) throws {
     print("[5/5] 💾 Project saved!".green)
 }
 
+// Configure CLI
+
+let arguments = Moderator(description: "Regenerate Xcode project and add optional SwiftLint/Sourcery integrations.")
+let skipSourcery = arguments.add(.option("s", "nosourcery", description: "Skip adding Sourcery phase"))
+let skipSwiftLint = arguments.add(.option("l","noswiftlint", description: "Skip adding SwiftLint phase"))
+
 // Main utility
 
 do {
+    try arguments.parse()
     try regenerateXcodeProject()
     let projectFilename = try locateXcodeProject()
     let project = try openXcodeProject(filename: projectFilename)
-    try modifyXcodeProject(project)
+    try modifyXcodeProject(project, skipSourcery.value, skipSwiftLint.value)
     try saveXcodeProject(project, filename: projectFilename)
 
     print("🎉 All done!".green)
@@ -131,5 +163,8 @@ do {
     exit(1)
 } catch GenerationErrors.couldNotSave {
     print("Couldn't save the project. I'm out of ideas! 💦".red)
+    exit(1)
+} catch is ArgumentError {
+    print(arguments.usagetext)
     exit(1)
 }

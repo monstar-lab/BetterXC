@@ -14,6 +14,7 @@ let package = Package(
     targets: [
         .target(
             name: "BetterXC",
-            dependencies: ["xcproj", "SwiftShell", "Moderator", "Rainbow"]),
+            dependencies: ["xcproj", "SwiftShell", "Moderator", "Rainbow"]
+        ),
     ]
 )
